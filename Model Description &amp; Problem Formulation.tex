@@ -20,8 +20,8 @@ $x_{ij}$ number of vehicles going from i to j\\
 $N = $ total number of stations \\
 $i = $ a station, $i \in N$\\
 $m = $ total number of vehicles \\
-$Q(s,a) = $ state-action values (expected utility if follow an action from state) 
-$ V(s) = $ values (expected utility) 
+$Q(s,a) = $ state-action values (expected utility if follow an action from state) \\
+$ V(s) = $ values (expected utility) \\
 
 Then the MDP model is defined as: \\
 Agent: each vehicle\\
@@ -48,7 +48,7 @@ Reward, $r$: - average customer wait time \\
         \min - V(s_{U})\\
     \end{center}
 where V(s_{U}) = \max_{a \in all\ a} Q(s_U,a_U)\\
-s.t.\ a_i^U = \sum_j x_{ij}^{U+1} + a_i^{U+1} \\
+s.t.\ a_i^U = \sum_j x_{ij}^{U+1} \\
 \sum_i x_{ij}^U = v_{jt}^{U+1}+a_j^{U+1}\\
 \end{equation*}
 \end{document}
