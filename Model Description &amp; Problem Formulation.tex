@@ -1,0 +1,51 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{Model Description & Problem Formulation}
+\author{vwwong3 }
+\date{November 2018}
+
+\begin{document}
+
+\maketitle
+
+\section{MDP Model Description}
+Let\\
+% TO DO: DEFINE ALL VARIABLES 
+$\lambda_i =$ customer demand at station i \\
+$\lambda'_i =$ forecast of customer demand at station i \\
+$N = $ total number of stations \\
+$i = $ a station, $i \in N$\\
+$a_i = $ number of idling vehicles at station i\\
+$m = $ total number of vehicles \\
+
+Then the MDP model is defined as: \\
+Agent: each vehicle\\
+State, $s$: ${(a_i,v_{it},\lambda_i,\lambda'_i)}$\\
+Action, $a$: ${x_{ij}}$\\
+Reward, $r$: - average customer wait time \\ 
+
+\section{Problem Formulation }
+\textbf{Learning stage}: At each time step $T$\\
+\begin{equation*}
+    \begin{center}
+        \min (Q_{target} - Q_{prediction})^2 \\
+    \end{center}
+    where \\
+    Q_{target} = r_T+\gamma \max_{a_{T+1}} Q(s_{T+1},a_{T+1}) \\
+    Q_{prediction} = Q(s_T,a_T) \Leftarrow (1-\alpha)Q_{predict}+\alpha Q_{target}\\
+    
+    s.t. r_T \leq 0\\
+    
+\end{equation*}
+\textbf{Rebalancing stage}: At each time step $U$
+\begin{equation*}
+    \begin{center}
+        \min - V(s_{U})\\
+    \end{center}
+where V(s_{U}) = \max_{a \in all\ a} Q(s_U,a_U)\\
+s.t. x_{ij}\leq a_i \\
+x_{ij}\leq v_{jt}\\
+?????\sum_i a_i + \sum_i \sum_t v_{it} = \sum_i \sum_j x_{ij} + \sum_i a_i = m
+\end{equation*}
+\end{document}
