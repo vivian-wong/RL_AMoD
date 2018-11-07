@@ -10,24 +10,29 @@
 \maketitle
 
 \section{MDP Model Description}
-Let\\
-% TO DO: DEFINE ALL VARIABLES 
-$a_i = $ number of idling vehicles at station i\\
-$v_{it}$ number of vehicles that will arrive at time t at station i\\
-$\lambda_i =$ customer demand at station i \\
-$\lambda'_i =$ forecast of customer demand at station i \\
-$x_{ij}$ number of vehicles going from i to j\\
-$N = $ total number of stations \\
-$i = $ a station, $i \in N$\\
-$m = $ total number of vehicles \\
-$Q(s,a) = $ state-action values (expected utility if follow an action from state) \\
-$ V(s) = $ values (expected utility) \\
+The AMoD rebalancing problem can be modeled as a MDP with the following components: \\
 
-Then the MDP model is defined as: \\
-Agent: each vehicle\\
-State, $s$: ${(a_i,v_{it},\lambda_i,\lambda'_i)}$\\
-Action, $a$: ${x_{ij}}$\\
-Reward, $r$: - average customer wait time \\ 
+\noindent \textit{Time step, $t$}: In reality, it is more cost-effective to check on the status of all vehicles and do rebalancing regularly after a certain time period (e.g. 5 minutes). This time period can therefore be defined as a unit time 1, and each time the system checks on the status of the environment would be a time step $t \in \{0,1,...,T-1,T\}$, where $T$ is the furthest time step that will be observed. At the start of each time step $t$, an agent starts out in a current state $s_t$, carries out an action $a_t$ following a certain policy. At the end of this time step (or the beginning of time step $t+1$), a new state $s_{t+1}$ and a reward $r_t$ is observed.\\
+
+\noindent \textit{Agent}: Each vehicle is treated as an agent. Although this definition makes the problem a multiagent problem, it reduces the dimensions of actions, so that there is a smaller action space to explore. \\
+
+\noindent \textit{State, $s_t$}: The state at time step $t$ is defined as a four-dimensional tuple, $(v_i,v_{it'},\lambda_i,\lambda'_i)$.
+
+The first two terms give information about all vehicles in the system. Consider a total of $N$ stations in the environment. $v_i$ represents the number of idle vehicles, or vehicles waiting at station $i\in N$ and not serving any customer at time $t$. $v_i$ is an array of dimension $i$. $v_{it'}$ is the number of vehicles that will deterministically arrive at station $i$, and will become an idle vehicle at $t'$, where $t'\in \{(t,T)\}$ ($T$, once again, is the maximum time that will be observed). This term is an array with a maximum dimension (worst case) of $min(m,N(T-t))$, where $m$ is the total number of vehicles.
+
+The last two terms give information about the customer demand. $\lambda_i$ represents the number of customers waiting to get a vehicle at station $i$. $\lambda'_i$ represents the demand forecasted with a LSTM neural network. The dimensions of these two terms are $N$.
+
+With this state definition, each agent can observe the entire macroscopic environment.\\
+
+\noindent \textit{Action, $a_t$}: An agent is only made to choose an action when it is idle. Consider an idle agent currently at station $i$. Its action is defined as $j$, where $j\in N$. If $i = j$, then the agent remains idle at its current station. If $i != j$, the agent departs to go to station $j$. The dimension of the action space is therefore $N$. \\
+
+\noindent \textit{Reward, $r_t$}: Is the average customer wait time. \\ 
+
+\noindent Lastly, from classical MDP, we define:
+
+$Q(s,a) = $ state-action values (expected utility if follow an action from state) 
+
+$ V(s) = $ values (expected utility) \\
 
 \section{Problem Formulation }
 \textbf{Learning stage}: At each time step $T$\\
