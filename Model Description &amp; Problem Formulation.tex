@@ -1,5 +1,6 @@
 \documentclass{article}
 \usepackage[utf8]{inputenc}
+\usepackage{algpseudocode}
 
 \title{Model Description & Problem Formulation}
 \author{vwwong3 }
@@ -18,7 +19,7 @@ The AMoD rebalancing problem can be modeled as a MDP with the following componen
 
 \noindent \textit{State, $s_t$}: The state at time step $t$ is defined as a four-dimensional tuple, $(v_i,v_{it'},\lambda_i,\lambda'_i)$.
 
-The first two terms give information about all vehicles in the system. Consider a total of $N$ stations in the environment. $v_i$ represents the number of idle vehicles, or vehicles waiting at station $i\in N$ and not serving any customer at time $t$. $v_i$ is an array of dimension $i$. $v_{it'}$ is the number of vehicles that will deterministically arrive at station $i$, and will become an idle vehicle at $t'$, where $t'\in \{(t,T)\}$ ($T$, once again, is the maximum time that will be observed). This term is an array with a maximum dimension (worst case) of $min(m,N(T-t))$, where $m$ is the total number of vehicles.
+The first two terms give information about all vehicles in the system. Consider a total of $N$ stations in the environment. $v_i$ represents the number of idle vehicles, or vehicles waiting at station $i\in N$ and not serving any customer at time $t$. $v_i$ is an array of dimension $i$. $v_{it'}$ is the number of vehicles that will deterministically arrive at station $i$, and will become an idle vehicle at $t'$, where $t'\in \{(t,T)\}$ ($T$, once again, is the maximum time that will be observed). This term is an array with a maximum dimension (worst case) of $min(M,N(T-t))$, where $M$ is the total number of vehicles.
 
 The last two terms give information about the customer demand. $\lambda_i$ represents the number of customers waiting to get a vehicle at station $i$. $\lambda'_i$ represents the demand forecasted with a LSTM neural network. The dimensions of these two terms are $N$.
 
@@ -28,32 +29,51 @@ With this state definition, each agent can observe the entire macroscopic enviro
 
 \noindent \textit{Reward, $r_t$}: Is the average customer wait time. \\ 
 
-\noindent Lastly, from classical MDP, we define:
+\noindent Lastly, from classical MDP definitions, we define:
 
-$Q(s,a) = $ state-action values (expected utility if follow an action from state) 
+State-action values (expected utility if follow an action from state), $Q(s,a)$: 
 
-$ V(s) = $ values (expected utility) \\
+Values (expected utility), $ V(s)$  
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Problem Formulation }
-\textbf{Learning stage}: At each time step $T$\\
-\begin{equation*}
-    \begin{center}
-        \min (Q_{target} - Q_{prediction})^2 \\
-    \end{center}
-    where \\
-    Q_{target} = r_T+\gamma \max_{a_{T+1}} Q(s_{T+1},a_{T+1}) \\
-    Q_{prediction} = Q(s_T,a_T) \Leftarrow (1-\alpha)Q_{predict}+\alpha Q_{target}\\
-    
-    s.t. r_T \leq 0\\
-    
-\end{equation*}
-\textbf{Rebalancing stage}: At each time step $U$
-\begin{equation*}
-    \begin{center}
-        \min - V(s_{U})\\
-    \end{center}
-where V(s_{U}) = \max_{a \in all\ a} Q(s_U,a_U)\\
-s.t.\ a_i^U = \sum_j x_{ij}^{U+1} \\
-\sum_i x_{ij}^U = v_{jt}^{U+1}+a_j^{U+1}\\
-\end{equation*}
+\subsection{Learning Stage}
+The goal in the learning stage is to learn the state-action values, $Q(s_t,a_t)$ at each state.
+
+To estimate the optimal values, we will use the Q-learning algorithm:
+\begin{algorithmic}
+\For{each ($s_t,a_t,r_t,s_{t+1}$)}
+    \State $Q_{target} = r_T+\gamma \max_{a_{t+1}} Q(s_{t+1},a_{t+1})$
+    \State $Q_{prediction} = Q(s_t,a_t) \leftarrow (1-\alpha)Q_{predict}+\alpha Q_{target}$
+\EndFor\\
+\end{algorithmic}
+
+The algorithm approaches convergence as the following objective is met:
+\begin{equation}
+        \min (Q_{target} - Q_{prediction})^2
+\end{equation}
+
+\subsection{Rebalancing Stage}
+
+At this stage, given the state-action values $Q$ from the learning stage and the current state, we want to find actions that maximize the total state-action values, in order to achieve global optimal. \\
+% optimal action for each vehicle may not be optimal action for global, because of constraints? 
+
+To do this, we formulate the following optimization problem. Consider a system of $M$ vehicles in total, and each vehicle could be indexed as $m$.
+\begin{equation}
+        \min -\sum_m^M Q_m((v_i,v_it',\lambda_i,\lambda'_i),j)
+\end{equation}
+where $Q_m$ is the Q value function obtained in the learning stage, for vehicle/agent $m$.\\
+
+The constraints are that inflow at all nodes must equal outflow: 
+\begin{itemize}
+    \item if there are $v_{it'}$ vehicles planning to arrive at station $i$ at time $t'$, then the number of idling vehicles at station $i$ at time $t'$ must be equal to $v_{it'}$
+    \item the number of vehicles heading towards station $i$ at time step $t$, must be equal to that plus the number of  idling vehicles at station $i$ at time step $t+1$
+\end{itemize}
+Formally, the constraints above can be written as: 
+\begin{equation}
+    \begin{array}{l}
+         v_{it'}(t) = v_i(t'), \forall i\in N \\
+         \sum_{t'=t+1}^T v_{it'} + \sum_{m=1}^M 1(a_t_m == j) = \sum_{t'=t+2}^T v_{it'} + v_j(t+1)
+    \end{array}
+\end{equation}
 \end{document}
