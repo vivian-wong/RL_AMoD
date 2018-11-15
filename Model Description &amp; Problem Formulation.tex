@@ -1,92 +1,152 @@
-\documentclass{article}
-\usepackage[utf8]{inputenc}
-\usepackage{algpseudocode}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%2345678901234567890123456789012345678901234567890123456789012345678901234567890
+%        1         2         3         4         5         6         7         8
+
+\documentclass[letterpaper, 10 pt, conference]{ieeeconf}  % Comment this line out
+                                                          % if you need a4paper
+%\documentclass[a4paper, 10pt, conference]{ieeeconf}      % Use this line for a4
+                                                          % paper
+
+\IEEEoverridecommandlockouts                              % This command is only
+                                                          % needed if you want to
+                                                          % use the \thanks command
+\overrideIEEEmargins
+% See the \addtolength command later in the file to balance the column lengths
+% on the last page of the document
+
+
+
+% The following packages can be found on http:\\www.ctan.org
+\usepackage{graphicx} 
+\usepackage{algpseudocode,algorithm}
 \usepackage{bm}
-\usepackage{graphicx}
 \usepackage{color}
 \usepackage{subfig}
 \usepackage{url}
 \usepackage{floatrow}
+\usepackage{amsmath}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
 
-%comments
-\renewenvironment{quote}{\list{}{\leftmargin=0.2in\rightmargin=0.2in}\item[]}{\endlist} 
+% for pdf, bitmapped graphics files
+%\usepackage{epsfig} % for postscript graphics files
+%\usepackage{mathptmx} % assumes new font selection scheme installed
+%\usepackage{times} % assumes new font selection scheme installed
+%\usepackage{amsmath} % assumes amsmath package installed
+%\usepackage{amssymb}  % assumes amsmath package installed
 
-\newcommand{\rimargin}[2]{{\color{blue}#1}\marginpar{\color{blue}\raggedright\footnotesize [RI]:#2}}
+\title{\LARGE \bf Reinforcement Learning in AMoD\\
+Model Description \& Problem Formulation
+}
 
-\title{Model Description \& Problem Formulation}
-\author{vwwong3 }
-\date{November 2018}
+%\author{ \parbox{3 in}{\centering Huibert Kwakernaak*
+%         \thanks{*Use the $\backslash$thanks command to put information here}\\
+%         Faculty of Electrical Engineering, Mathematics and Computer Science\\
+%         University of Twente\\
+%         7500 AE Enschede, The Netherlands\\
+%         {\tt\small h.kwakernaak@autsubmit.com}}
+%         \hspace*{ 0.5 in}
+%         \parbox{3 in}{ \centering Pradeep Misra**
+%         \thanks{**The footnote marks may be inserted manually}\\
+%        Department of Electrical Engineering \\
+%         Wright State University\\
+%         Dayton, OH 45435, USA\\
+%         {\tt\small pmisra@cs.wright.edu}}
+%}
+
+\author{Vivian Wong}
+
 
 \begin{document}
 
+
+
 \maketitle
+\thispagestyle{empty}
+\pagestyle{empty}
 
-\section{MDP Model Description}
-\rimargin{The AMoD rebalancing problem can be modeled as a MDP with the following components:}{Can we concatenate your literature review and this? Also, please do start by describing the system. This paragraph should be used to describe the AMoD system qualitatively. What is it? what are its components? When do you get to act? What are your available actions?} \\
+%%%%%%%%%%%%%%%%%%%%%%%%%%-BEGIN-%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\noindent \textit{Time step, $t$}: \rimargin{In reality, it is more cost-effective to check on the status of all vehicles and do rebalancing regularly after a certain time period (e.g. 5 minutes)}{For example, this sentence seems like it already assumes a lot of background information.}. This time period can therefore be defined as a unit time 1, and each time the system checks on the status of the environment would be a time step $t \in \{0,1,...,T-1,T\}$, where $T$ is the furthest time step that will be observed. \rimargin{At the start of each time step $t$, an agent starts out in a current state $s_t$, carries out an action $a_t$ following a certain policy.}{please define what's an agent first} At the end of this time step (or the beginning of time step $t+1$), a new state $s_{t+1}$ and a reward $r_t$ is observed.\\
+\section{Model and Problem Formulation}
+In this section, we first outline the background information that help defining variables in the model. We then describe the Markov Decision Process (MDP) used to model vehicle rebalancing as a sequential decision-making process. Lastly, we present the problem formulation for the vehicle rebalancing problem in two stages: learning and rebalancing. 
 
-\noindent \textit{Agent}: \rimargin{Each vehicle is treated as an agent.}{Interesting, wouldn't this mean that you have are essentially solving a distributed problem rather than a centralized one?} Although this definition makes the problem a multiagent problem, it reduces the dimensions of actions, so that there is a smaller action space to explore. \\
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Background Information}
+Consider an environment discretized into a set of $\mathcal{N}$ stations (also can be viewed as discretized regions, as in [1]). Time is presented in discrete intervals of unit time $1$. The furthest time that will be considered is denoted as $\mathcal{T}$.
 
-\noindent \textit{State, $s_t$}: The state at time step $t$ is defined as a four-dimensional tuple, $(v_i,v_{it'},\lambda_i,\lambda'_i)$.
+Furthermore, let $M$ denote the total number of vehicles. $v_i$ denotes the number of idle vehicles, or vehicles waiting at station $i\in N$ and not serving any customer at time $t$. $v_{it'}$ denotes the number of vehicles that will arrive at station $i$, and will become an idle vehicle at $t'$. Note that we assume that the vehicles will arrive at time $t'$ deterministically, or that no uncertainty is taken into account for travel times between two stations. 
 
-The first two terms give information about all vehicles in the system. \rimargin{Consider a total of $N$ stations in the environment.}{This should should be earlier in the problem formulation, as part of the high-level description of the system under study.} $v_i$ represents the number of idle vehicles, or vehicles waiting at station $i\in N$ and not serving any customer at time $t$. $v_i$ is an array of dimension \rimargin{$i$}{you mean, $|N|$}. $v_{it'}$ is the number of vehicles that will deterministically arrive at station $i$, and will become an idle vehicle at $t'$, where $t'\in \{(t,T)\}$ ($T$, once again, is the maximum time that will be observed). \rimargin{This term is an array with a maximum dimension (worst case) of $min(M,N(T-t))$, where $M$ is the total number of vehicles.}{Why? There are only $|N|$ stations, and $T$ time steps, wouldn't this vector always be $|N|T$?}
+In an AMoD system, at every station there are customers demanding vehicles to service their transportation requests. We denote $\lambda_{ijt}$ as the number of customers waiting to get a vehicle at station $i$ at time $t$, wishing to travel to station $j$. $\lambda'_{ijt}$ represents the demand forecasted with a LSTM neural network, as described in [1].
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{MDP Model Description}
+At every time step $t \in \{1,...,T-1,T\}$, a MDP, an \textit{agent} observes the environment and store the values of interest in the observation as its \textit{current state, $s_t$}. The agent then conducts an \textit{action $a_t$} following a certain policy. At the end of this time step (or the beginning of time step $t+1$), a \textit{new state $s_{t+1}$} and a \textit{reward $r_t$} are observed. The definitions of MDP components are:\\
 
-The last two terms give information about the customer demand. $\lambda_i$ represents the number of customers waiting to get a vehicle at station $i$. \rimargin{$\lambda'_i$ represents the demand forecasted with a LSTM neural network.}{So, wait, you're only forecasting for a single time step, but planning for several time steps?} The dimensions of these two terms are $N$.
+\noindent \textit{Agent}: Each vehicle is treated as an agent. Although this definition makes the problem a multiagent problem, it reduces the dimensions of actions, so that there is a smaller action space to explore. \\
 
-With this state definition, each agent can observe the entire macroscopic environment.\\
+\noindent \textit{State, $s_t$}: The state at time step $t$ is defined as a four-dimensional tuple, where each element of the tuple stores an array. Each element of the tuple stores the following in order: $v_i$ , $v_{it'}$, $\lambda_{ijt}$ and $\lambda'_{ijt} \forall i,j\in\mathcal{N}$. The dimensions of the four elements are $|\mathcal{N}|,|\mathcal{N}|T,|\mathcal{N}|^2,|\mathcal{N}|^2$ respectively.
 
-\noindent \textit{Action, $a_t$}: An agent is only made to choose an action when it is idle. Consider an idle agent currently at station $i$. Its action is defined as $j$, where $j\in N$. If $i = j$, then the agent remains idle at its current station. If $i \neq j$, the agent departs to go to station $j$. The dimension of the action space is therefore $N$. \\
+\noindent \textit{Action, $a_t$}: An agent is only made to choose an action when it is idle. Consider an idle agent currently at station $i$. Its action is defined as $j$, where $j\in \mathcal{N}$. If $i = j$, then the agent remains idle at its current station. If $i \neq j$, the agent departs to go to station $j$. The dimension of the action space is therefore $\mathcal{N}$. \\
 
-\noindent \textit{Reward, $r_t$}: Is the average customer wait time. \\ 
+\noindent \textit{Reward, $r_t$}: The reward is equal to the average customer wait time at time $t$. \\ 
 
-\noindent Lastly, from classical MDP definitions, we define:
+Lastly, from classical MDP definitions, we define the state-action value, $Q(s,a)$ as the expected utility if following an action $a$ from state $t$.
 
-State-action values (expected utility if follow an action from state), $Q(s,a)$: 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Problem Formulation}
+\subsubsection{Learning Stage}
+The goal in the learning stage is to learn the state-action values, $Q(s_t,a_t)$ at each explored state.
 
-Values (expected utility), $ V(s)$  
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Problem Formulation }
-\subsection{Learning Stage}
-The goal in the learning stage is to learn the state-action values, $Q(s_t,a_t)$ at each state.
-
-To estimate the optimal values, we will use the Q-learning algorithm:
+To update and estimate state-action values, we will use the Q-learning algorithm:
+\begin{algorithm}[H]
+\caption{Q-Learning}
 \begin{algorithmic}
 \For{each ($s_t,a_t,r_t,s_{t+1}$)}
     \State $Q_{target} = r_T+\gamma \max_{a_{t+1}} Q(s_{t+1},a_{t+1})$
     \State $Q_{prediction} = Q(s_t,a_t) \leftarrow (1-\alpha)Q_{predict}+\alpha Q_{target}$
-\EndFor\\
+\EndFor
 \end{algorithmic}
+\end{algorithm}
+
 
 The algorithm approaches convergence as the following objective is met:
 \begin{equation}
         \min (Q_{target} - Q_{prediction})^2
 \end{equation}
 
-\rimargin{Notes: How will you deal with the fact that an action $a_t$ will likely not have completed for several time steps? For example, if it takes $K$ time steps to go perform action $a_t$, how will you account for $\max_{a_{t+1}} Q(s_{t+1},a_{t+1})$ if $a_{t+1}$ is empty for at least $K$ steps?}{things to think about}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsection{Rebalancing Stage}
+\subsubsection{Rebalancing Stage}
+Actions that give highest state-action values for each agent may be only optimal locally but not globally. At this stage, we aim to use the state-action values learned in the learning stage to find actions that minimize customer wait time by rebalancing empty vehicles. 
 
-At this stage, given the state-action values $Q$ from the learning stage and the current state, we want to find actions that maximize the total state-action values, in order to achieve global optimal. \\
-% optimal action for each vehicle may not be optimal action for global, because of constraints? 
+To do this, we find the global optimum by assigning actions sequentially for each vehicle. We create smaller simulated states, $\hat{s_t}$ that are updated every time a vehicle has been assigned an action. The algorithm follows: 
+\begin{algorithm}[H]
+\caption{Assigning Actions using Learned Values}
+\begin{algorithmic}
+\For{each time step $t \in {0,1,...,T}$}
+    \State $\hat{s_t}=s_t$
+    \For{each vehicle $m$ in $v_i_t$ vehicles}
+        \If {vehicle is not idle}
+            \State \textbf{Continue}
+        \EndIf
+        \State $a_t^m \leftarrow \argmax_a(Q(\hat{s_t},a))$
+        \State $\hat{s_t}$ \leftarrow \textbf{simulate}$(a^m_t,s_t)$
+    \EndFor
+    \State\textbf{Assign} $\{a^1_t,a^2_t,...,a^M_t\}$
+\EndFor
+\end{algorithmic}
+\end{algorithm}
 
-To do this, we formulate the following optimization problem. \rimargin{Consider a system of $M$ vehicles in total, and each vehicle could be indexed as $m$}{Looking at this, how will the vehicles coordinate if they are all choosing a locally optimal action?}.
+This algorithm finds actions that aim for the following objective: 
 \begin{equation}
-        \min -\sum_m^M Q_m((v_i,v_it',\lambda_i,\lambda'_i),j)
+        \min -\sum_m^M Q^m((v_i,v_it',\lambda_i,\lambda'_i),j)\forall i,j\in \mathcal{N}
 \end{equation}
-where $Q_m$ is the Q value function obtained in the learning stage, for vehicle/agent $m$.\\
+By creating smaller simulated states and thereby making decisions sequentially, we can take into account of the actions of other agents while optimizing actions for one agent.  
 
-\rimargin{The constraints are that inflow at all nodes must equal outflow}{looking at your formulation, it is unclear to me why we would care about the constraints. The inflo-outflow constraints in the other papers are relevant because we are optimizing from a global perspective, thus our actions must be constrained to reflect where we do and do not have vehicles. In this case, each vehicle is optimizing individually, and the constraints are implicit in the range of possible actions.}: 
-\begin{itemize}
-    \item if there are $v_{it'}$ vehicles planning to arrive at station $i$ at time $t'$, then the number of idling vehicles at station $i$ at time $t'$ must be equal to $v_{it'}$
-    \item the number of vehicles heading towards station $i$ at time step $t$, must be equal to that plus the number of  idling vehicles at station $i$ at time step $t+1$
-\end{itemize}
-Formally, the constraints above can be written as: 
-\begin{equation}
-    \begin{array}{l}
-         v_{it'}(t) = v_i(t'), \forall i \in N \\
-         \sum_{t'=t+1}^T v_{it'} + \sum_{m=1}^M 1(a_{t_m}3 == j) = \sum_{t'=t+2}^T v_{it'} + v_j(t+1)
-    \end{array}
-\end{equation}
+%%%%%%%%%%%%%%%%%%%%
+\begin{thebibliography}{99}
+
+\bibitem{c1} R. Iglesias, F. Rossi, K. Wang, D. Hallac, J. Leskovec, and M. Pavone, “Data-Driven Model Predictive Control of Autonomous Mobility-on-Demand Systems,” \textit{Proc. IEEE Conf. on Robotics and Automation}, 2018.
+
+
+\end{thebibliography}
 \end{document}
